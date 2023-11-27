@@ -14,14 +14,6 @@ class User extends Authenticatable implements FilamentUser
     protected $hidden = ['password'];
 
     /**
-     * @return string
-     */
-    public function getFilamentName(): string
-    {
-        return "{$this->first_name} {$this->last_name}";
-    }
-
-    /**
      * @param Panel $panel
      * @return bool
      */

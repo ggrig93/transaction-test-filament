@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Actions\CreateTransaction;
 use App\Enums\TransactionType;
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\User;
@@ -14,7 +15,6 @@ use Filament\Tables;
 
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Illuminate\Validation\ValidationException;
 
 class UserResource extends Resource
 {
@@ -35,16 +35,17 @@ class UserResource extends Resource
                 Card::make()->schema([
                     TextInput::make('name')->reactive(),
                     TextInput::make('password')->visible($isCreate),
-                    TextInput::make('balance')->required(),
                     TextInput::make('email')->required(),
-
                 ])
             ]);
     }
 
+    /**
+     * @param Table $table
+     * @return Table
+     */
     public static function table(Table $table): Table
     {
-
         return $table
             ->columns([
                 TextColumn::make('id')->sortable()->searchable(),
@@ -53,43 +54,22 @@ class UserResource extends Resource
             ])
             ->actions([
                 Tables\Actions\Action::make(TransactionType::DEBIT->value)
-                    ->form(function(User $user) {
-                        // Todo: should be refactored there was no way in filament docs
+                    ->form(function (User $user) {
                         return [
-                            TextInput::make('amount')->rules([
-                                function () use ($user){
-                                    return function (string $attribute, $value, Closure $fail) use ($user) {
-                                       if( $user->balance < $value) {
-                                           $fail('The :attribute is invalid. Insufficient funds');
-                                       }
-                                    };
-                                },
-                            ])
+                            TextInput::make('amount')->rules(['numeric', 'lte:' . $user->balance])
                         ];
-                    } )
-                    ->action(function (User $user, array $data): void {
-                        $user->transactions()->create([
-                            'type' => TransactionType::DEBIT->value,
-                            'amount' => $data['amount'],
-                        ]);
-
-                        $user->subBalance($data['amount']);
+                    })
+                    ->action(function (User $user, array $data, CreateTransaction $createTransaction): void {
+                        $createTransaction($user, $data['amount']);
                     }),
                 Tables\Actions\Action::make(TransactionType::CREDIT->value)
                     ->form([
                         TextInput::make('amount'),
                     ])
-                    ->action(function (User $user, array $data): void {
-                        $user->transactions()->create([
-                            'type' => TransactionType::CREDIT->value,
-                            'amount' => $data['amount'],
-                        ]);
-                        $user->addBalance($data['amount']);
+                    ->action(function (User $user, array $data, CreateTransaction $createTransaction): void {
+                        $createTransaction($user, $data['amount'], true);
                     }),
                 Tables\Actions\EditAction::make(),
-            ])
-            ->filters([
-                //
             ])
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make(),
@@ -107,6 +87,5 @@ class UserResource extends Resource
             'edit' => Pages\EditUser::route('/{record}/edit'),
         ];
     }
-
 
 }

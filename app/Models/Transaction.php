@@ -9,13 +9,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Transaction extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'amount',
         'user_id',
         'type',
     ];
-
-    use HasFactory;
 
     /**
      * @return BelongsTo

@@ -26,7 +26,6 @@ class TransactionResource extends Resource
                 TextColumn::make('user.email')->sortable()->searchable()->label('email'),
             ]);
 
-
     }
 
     /**
